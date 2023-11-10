@@ -1,13 +1,17 @@
 package com.example.usersservice.controller;
 
+import com.example.usersservice.model.KafkaFollowMessageDetails;
 import com.example.usersservice.model.User;
+import com.example.usersservice.service.KafkaUserFollowerDetailsProducerService;
 import com.example.usersservice.service.UserService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -15,10 +19,12 @@ import java.util.List;
 @RequestMapping("/api/users")
 public class UserController {
     private final UserService userService;
+    private final KafkaUserFollowerDetailsProducerService kafkaUserFollowerDetailsProducerService;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, KafkaUserFollowerDetailsProducerService kafkaUserFollowerDetailsProducerService) {
         this.userService = userService;
+        this.kafkaUserFollowerDetailsProducerService = kafkaUserFollowerDetailsProducerService;
     }
 
     @PostMapping("/create")
@@ -37,51 +43,76 @@ public class UserController {
         }
     }
 
-    @PutMapping("/{username}")
-    public ResponseEntity<User> updateUser(@PathVariable String username, @RequestBody User updatedUser) {
-        log.info("Received request to update user: {}", username);
-        User user = userService.updateUser(username, updatedUser);
+    @PutMapping("/{userId}")
+    public ResponseEntity<User> updateUser(@PathVariable String userId, @RequestBody User updatedUser) {
+        log.info("Received request to update user: {}", userId);
+        User user = userService.updateUser(userId, updatedUser);
         return ResponseEntity.ok(user);
     }
 
-    @PostMapping("/{username}/follow/{userToFollowUsername}")
-    public ResponseEntity<Void> followUser(@PathVariable String username, @PathVariable String userToFollowUsername) {
-        log.info("Received request for user with username: {} to follow user with name: {}", username, userToFollowUsername);
-        userService.followUser(username, userToFollowUsername);
-        log.info("User with username: {} followed user with id: {}", username, userToFollowUsername);
+    @PostMapping("/{userId}/follow/{userToFollowUserId}")
+    public ResponseEntity<Void> followUser(@PathVariable String userId, @PathVariable String userToFollowUserId) throws JsonProcessingException {
+        log.info("Received request for user with username: {} to follow user with name: {}", userId, userToFollowUserId);
+        userService.followUser(userId, userToFollowUserId);
+        log.info("User with username: {} followed user with id: {}", userId, userToFollowUserId);
+        KafkaFollowMessageDetails kafkaFollowMessageDetails = KafkaFollowMessageDetails.builder()
+                .userId(userToFollowUserId)
+                .eventType("Follow_event")
+                .followerId(userId)
+                .timestamp(LocalDateTime.now())
+                .build();
+        kafkaUserFollowerDetailsProducerService.sendMessage(kafkaFollowMessageDetails);
+
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/{username}/unfollow/{userToUnfollowUsername}")
-    public ResponseEntity<Void> unfollowUser(@PathVariable String username, @PathVariable String userToUnfollowUsername) {
-        log.info("Received request for user with username: {} to unfollow user with id: {}", username, userToUnfollowUsername);
-        userService.unfollowUser(username, userToUnfollowUsername);
-        log.info("User with username: {} unfollowed user with id: {}", username, userToUnfollowUsername);
+    @PostMapping("/{userId}/unfollow/{userToUnfollowUserId}")
+    public ResponseEntity<Void> unfollowUser(@PathVariable String userId, @PathVariable String userToUnfollowUserId) {
+        log.info("Received request for user with username: {} to unfollow user with id: {}", userId, userToUnfollowUserId);
+        userService.unfollowUser(userId, userToUnfollowUserId);
+        log.info("User with username: {} unfollowed user with id: {}", userId, userToUnfollowUserId);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{username}/followers")
-    public ResponseEntity<List<User>> getFollowers(@PathVariable String username) {
-        log.info("Received request to get followers for user with username: {}", username);
-        List<User> followers = userService.getFollowers(username);
-        log.info("Retrieved {} followers for user with username: {}", followers.size(), username);
+    @GetMapping("/{userId}/followers")
+    public ResponseEntity<List<User>> getFollowers(@PathVariable String userId) {
+        log.info("Received request to get followers for user with username: {}", userId);
+        List<User> followers = userService.getFollowers(userId);
+        log.info("Retrieved {} followers for user with username: {}", followers.size(), userId);
         return ResponseEntity.ok(followers);
     }
 
-    @GetMapping("/{username}/following")
-    public ResponseEntity<List<User>> getFollowing(@PathVariable String username) {
-        log.info("Received request to get following for user with username: {}", username);
-        List<User> following = userService.getFollowing(username);
-        log.info("Retrieved {} following for user with username: {}", following.size(), username);
+    @GetMapping("/{userId}/following")
+    public ResponseEntity<List<User>> getFollowing(@PathVariable String userId) {
+        log.info("Received request to get following for user with username: {}", userId);
+        List<User> following = userService.getFollowing(userId);
+        log.info("Retrieved {} following for user with username: {}", following.size(), userId);
         return ResponseEntity.ok(following);
     }
 
+    @GetMapping("/getUser/{userId}")
+    public ResponseEntity<User> getUserById(@PathVariable String userId) {
+        log.info("Received request to get user: {}", userId);
+        User user = userService.getUser(userId);
+        return ResponseEntity.ok(user);
+    }
     @GetMapping("/search")
     public ResponseEntity<List<User>> searchUsers(@RequestParam String keyword) {
         log.info("Received request to search for users with keyword: {}", keyword);
         List<User> users = userService.searchUsers(keyword);
         if(users.isEmpty()) {
             log.info("No users found for the keyword: {}", keyword);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(users);
+    }
+
+    @GetMapping("/getAllUsers")
+    public ResponseEntity<List<User>> getAllUsers() {
+        log.info("Received request to get all  users");
+        List<User> users = userService.getAllUsers();
+        if(users.isEmpty()) {
+            log.info("No users found ");
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(users);

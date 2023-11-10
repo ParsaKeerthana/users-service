@@ -26,22 +26,19 @@ public class UserService {
     }
 
     public User updateUser(String username, User updatedUser) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUserId(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
-        if (updatedUser.getBio() != null) {
-            user.setBio(updatedUser.getBio());
+        if (updatedUser.getEmail() != null) {
+            user.setEmail(updatedUser.getEmail());
         }
         if (updatedUser.getFirstName() != null) {
-            user.setBio(updatedUser.getFirstName());
+            user.setFirstName(updatedUser.getFirstName());
         }
         if (updatedUser.getLastName()!= null) {
-            user.setBio(updatedUser.getLastName());
+            user.setLastName(updatedUser.getLastName());
         }
         if (updatedUser.getLocation() != null) {
             user.setLocation(updatedUser.getLocation());
-        }
-        if (updatedUser.getWebsite() != null) {
-            user.setWebsite(updatedUser.getWebsite());
         }
         if (updatedUser.getProfileImageUrl() != null) {
             user.setProfileImageUrl(updatedUser.getProfileImageUrl());
@@ -54,9 +51,9 @@ public class UserService {
     }
 
     public void followUser(String currentUsername, String userToFollowUsername) {
-        User currentUser = userRepository.findByUsername(currentUsername)
+        User currentUser = userRepository.findByUserId(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + currentUsername));
-        User userToFollow = userRepository.findByUsername(userToFollowUsername)
+        User userToFollow = userRepository.findByUserId(userToFollowUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + userToFollowUsername));
 
         currentUser.getFollowing().add(userToFollow.getId());
@@ -67,9 +64,9 @@ public class UserService {
     }
 
     public void unfollowUser(String currentUsername, String userToUnfollowUsername) {
-        User currentUser = userRepository.findByUsername(currentUsername)
+        User currentUser = userRepository.findByUserId(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + currentUsername));
-        User userToUnfollow = userRepository.findByUsername(userToUnfollowUsername)
+        User userToUnfollow = userRepository.findByUserId(userToUnfollowUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + userToUnfollowUsername));
 
         currentUser.getFollowing().remove(userToUnfollow.getId());
@@ -84,7 +81,7 @@ public class UserService {
     }
 
     public List<User> getFollowers(String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUserId(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
         List<String> followerIds = new ArrayList<>(user.getFollowers());
         // findAllById returns an Iterable, we need to convert it to a List
@@ -95,7 +92,7 @@ public class UserService {
     }
 
     public List<User> getFollowing(String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUserId(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
         // Convert the Set of following IDs to a List to match findAllById signature
         List<String> followingIds = new ArrayList<>(user.getFollowing());
@@ -104,5 +101,14 @@ public class UserService {
         userRepository.findAllById(followingIds).forEach(following::add);
 
         return following;
+    }
+    public User getUser(String userId) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + userId));
+        return user;
+    }
+    public List<User> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        return users;
     }
 }

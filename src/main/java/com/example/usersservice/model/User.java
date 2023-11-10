@@ -1,6 +1,7 @@
 package com.example.usersservice.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
@@ -14,17 +15,20 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class User {
     @Id
     private String id;
+
+    private String userId;
 
     @TextIndexed
     @Indexed(unique = true)
     private String username;
 
-    private String bio;
+    private String tagline;
     private String location;
-    private String website;
+    private String email;
     private String profileImageUrl;
     private String coverImageUrl;
     private String firstName;
