@@ -4,6 +4,7 @@ import com.example.usersservice.model.User;
 import com.example.usersservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,11 +22,19 @@ public class UserController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        log.info("Received request to create a new user with username: {}", user.getUsername());
-        User createdUser = userService.createUser(user);
-        log.info("Created new user with id: {}", createdUser.getId());
-        return ResponseEntity.ok(createdUser);
+    public ResponseEntity<?> createUser(@RequestBody User user) {
+        try {
+            log.info("Received request to create a new user with username: {}", user.getUsername());
+            User createdUser = userService.createUser(user);
+            log.info("Created new user with id: {}", createdUser.getId());
+            return ResponseEntity.ok(createdUser);
+        }
+        catch (Exception e) {
+            log.error("Error creating user: A user with username '{}' already exists.", user.getUsername());
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body("A user with the username '" + user.getUsername() + "' already exists.");
+        }
     }
 
     @PutMapping("/{username}")
@@ -65,6 +74,17 @@ public class UserController {
         List<User> following = userService.getFollowing(username);
         log.info("Retrieved {} following for user with username: {}", following.size(), username);
         return ResponseEntity.ok(following);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<User>> searchUsers(@RequestParam String keyword) {
+        log.info("Received request to search for users with keyword: {}", keyword);
+        List<User> users = userService.searchUsers(keyword);
+        if(users.isEmpty()) {
+            log.info("No users found for the keyword: {}", keyword);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(users);
     }
 
 }

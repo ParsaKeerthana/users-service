@@ -79,10 +79,13 @@ public class UserService {
         userRepository.save(userToUnfollow);
     }
 
+    public List<User> searchUsers(String keyword) {
+        return userRepository.searchByUsername(keyword);
+    }
+
     public List<User> getFollowers(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
-        // Convert the Set of follower IDs to a List to match findAllById signature
         List<String> followerIds = new ArrayList<>(user.getFollowers());
         // findAllById returns an Iterable, we need to convert it to a List
         List<User> followers = new ArrayList<>();
