@@ -46,6 +46,12 @@ public class UserService {
         if (updatedUser.getCoverImageUrl() != null) {
             user.setCoverImageUrl(updatedUser.getCoverImageUrl());
         }
+        if (updatedUser.getUsername() != null) {
+            user.setUsername(updatedUser.getUsername());
+        }
+        if (updatedUser.getTagline() != null) {
+            user.setTagline(updatedUser.getTagline());
+        }
         user.setUpdatedAt(LocalDateTime.now());
         return userRepository.save(user);
     }

@@ -44,10 +44,20 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<User> updateUser(@PathVariable String userId, @RequestBody User updatedUser) {
-        log.info("Received request to update user: {}", userId);
-        User user = userService.updateUser(userId, updatedUser);
-        return ResponseEntity.ok(user);
+    public ResponseEntity<?> updateUser(@PathVariable String userId, @RequestBody User updatedUser) {
+        try {
+            log.info("Received request to update user: {}", userId);
+            User user = userService.updateUser(userId, updatedUser);
+            return ResponseEntity.ok(user);
+        }
+        catch (Exception e)
+        {
+            log.error("Error Updating username: A user with username '{}' already exists.", updatedUser.getUsername());
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body("A user with the username '" + updatedUser.getUsername() + "' already exists.");
+
+        }
     }
 
     @PostMapping("/{userId}/follow/{userToFollowUserId}")
