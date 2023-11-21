@@ -77,10 +77,17 @@ public class UserController {
     }
 
     @PostMapping("/{userId}/unfollow/{userToUnfollowUserId}")
-    public ResponseEntity<Void> unfollowUser(@PathVariable String userId, @PathVariable String userToUnfollowUserId) {
+    public ResponseEntity<Void> unfollowUser(@PathVariable String userId, @PathVariable String userToUnfollowUserId) throws JsonProcessingException {
         log.info("Received request for user with username: {} to unfollow user with id: {}", userId, userToUnfollowUserId);
         userService.unfollowUser(userId, userToUnfollowUserId);
         log.info("User with username: {} unfollowed user with id: {}", userId, userToUnfollowUserId);
+        KafkaFollowMessageDetails kafkaFollowMessageDetails = KafkaFollowMessageDetails.builder()
+                .userId(userToUnfollowUserId)
+                .eventType("Unfollow_event")
+                .followerId(userId)
+                .timestamp(LocalDateTime.now())
+                .build();
+        kafkaUserFollowerDetailsProducerService.sendMessage(kafkaFollowMessageDetails);
         return ResponseEntity.ok().build();
     }
 
